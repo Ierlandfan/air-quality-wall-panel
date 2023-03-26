@@ -1,0 +1,365 @@
+esphome:
+  name: airqualitylivingroom
+  platform: ESP32
+  board: featheresp32
+
+wifi:
+  ssid: "your ssid"
+  password: "your password"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Fallback airquality Hotspot"
+    password: "lost_password"
+
+#captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: "some-password"
+
+ota:
+  password: "ota-password"
+
+web_server:
+  port: 80
+
+external_components:
+  - source: github://Schluggi/esphome@bsec2
+    components:
+      - bme680_bsec
+
+# Example configuration entry
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+color:
+  - id: my_red
+    red: 100%
+    green: 0%
+    blue: 0%
+  - id: my_yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_blue
+    red: 0%
+    green: 0%
+    blue: 100%
+  - id: my_gray
+    red: 50%
+    green: 50%
+    blue: 50%
+ 
+
+# Grab font from https://fonts.google.com/specimen/Roboto and place them in /config/fonts/
+font:
+  - file: "/config/fonts/Roboto-Medium.ttf"
+    id: sz_24
+    size: 24
+  - file: "/config/fonts/Roboto-Medium.ttf"
+    id: sz_20
+    size: 20
+    glyphs: '!"%()+,-_.:°0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz/³µΩ'
+  - file: "/config/fonts/Roboto-Medium.ttf"
+    id: sz_13
+    size: 13
+
+  - file: '/config/fonts//materialdesignicons-webfont.ttf' 
+    id: wifi_font
+    size: 32
+    glyphs: [    # Wifi
+      '󰤟', # mdi-wifi-strength-1
+      '󰤢', # mdi-wifi-strength-2
+      '󰤥', # mdi-wifi-strength-3
+      '󰤨', # mdi-wifi-strength-4
+      '󰤫', # mdi-wifi-strength-alert-outline
+      ]
+
+
+#deep_sleep:
+#  run_duration: 30s
+#  sleep_duration: 5min
+
+# For temp + humidity sensor
+i2c:
+  sda: 21
+  scl: 22
+  scan: True
+
+# Library bsec bme680 python in den config/esphome/custom_components ordner kopieren
+# https://github.com/trvrnrth/esphome-bsec-bme680
+
+bme680_bsec:
+    # i2c address override (default is 0x76)
+    address: 0x77
+
+    # Temperature offset if device is in enclosure and reads too high (default is 0)
+    temperature_offset: -10.0
+
+    # Mode for IAQ sensors if device is mobile (default is static)
+    # iaq_mode: static
+
+    # Interval at which to save BSEC state (default is 6 hours)
+    state_save_interval: 6h
+
+    # Sample rate
+    # -----------
+    # Available options:
+    # - lp (low power - samples every 3 seconds)
+    # - ulp (ultra low power - samples every 5 minutes)
+    # Default: lp
+    sample_rate: ulp
+ 
+
+
+sensor:
+ 
+ 
+
+ 
+ 
+ 
+  - platform: uptime
+    name: Dach SchlaZi Uptime sec
+    id: uptime_sec
+    update_interval: 20s
+  - platform: wifi_signal
+    name: "WiFi Signal Dach SchlaZi"
+    update_interval: 20s
+
+## bme680_bsec
+  - platform: bme680_bsec
+    temperature:
+      name: "Dach SchlaZi Temperatur"
+      id: temp
+      sample_rate: lp
+      filters:
+        - median
+        - offset: -15.0
+
+
+    pressure:
+      name: "Dach SchlaZi Luftdruck"
+      id: pressure
+      sample_rate: lp
+      unit_of_measurement: "hPa"
+      filters:
+        - lambda: >-
+            return x / powf(1.0 - (415 / 44330.0), 5.255);
+    humidity:
+      name: "Dach Schlazi Luftfeuchtigkeit"
+      id: humidity
+      sample_rate: lp
+      filters:
+        - median
+
+    gas_resistance:
+      name: "Dach SchlaZi CO2 Widerstand"
+      id: gas_r
+      filters:
+        - median
+    iaq:
+      name: "Dach SchlaZi BME680 IAQ"
+      id: iaq_range
+      filters:
+        - median
+
+    co2_equivalent:
+      name: "Dach SchlaZi BME680 CO2 Equivalent"
+      id: iaq_ppm
+      filters:
+        - median
+  
+  
+    breath_voc_equivalent:
+      name: "Dach SchlaZiBME680 Breath VOC Equivalent"
+      filters:
+        - median
+
+    iaq_accuracy:
+      # IAQ accuracy as a numeric value of 0, 1, 2, 3
+      name: "Dach SchlaZi BME680 Numeric IAQ Accuracy"
+
+
+## Original esphome bme680 settings
+#  - platform: bme680
+#    i2c_id: bus_a
+#    address: 0x77
+#    temperature:
+#      name: "Dach SchlaZi Temperatur"
+#      id: temp
+#      oversampling: 16x
+#    pressure:
+#      name: "Dach SchlaZi Luftdruck"
+#      id: druck
+#      unit_of_measurement: "hPa"
+#      filters:
+#        - lambda: >-
+#            return x / powf(1.0 - (415 / 44330.0), 5.255);
+#    humidity:
+#      name: "Dach Schlazi Luftfeuchtigkeit"
+#      id: feuchte
+#    gas_resistance:
+#      name: "Dach SchlaZi Gas Widerstand"
+#      id: gas_resist
+#    update_interval: 60s
+
+## Berechnungen 
+ 
+ 
+  - platform: template
+    name: "Dach SchlaZi Absolute Feuchtigkeit"
+    lambda: |-
+      const float mw = 18.01534;    // molar mass of water g/mol
+      const float r = 8.31447215;   // Universal gas constant J/mol/K
+      return (6.112 * powf(2.718281828, (17.67 * id(temp).state) /
+        (id(temp).state + 243.5)) * id(humidity).state * mw) /
+        ((273.15 + id(temp).state) * r); // in grams/m^3
+    accuracy_decimals: 2
+    update_interval: 60s
+    icon: 'mdi:water'
+    unit_of_measurement: 'g/m³'
+    
+  - platform: template
+    name: "Dach SchlaZi Luftdruck auf Meereshöhe"
+    lambda: |-
+      const float STANDARD_ALTITUDE = 415; // in meters, see note
+      return id(pressure).state / powf(1 - ((0.0065 * STANDARD_ALTITUDE) /
+        (id(temp).state + (0.0065 * STANDARD_ALTITUDE) + 273.15)), 5.257); // in hPa
+    update_interval: 60s
+    unit_of_measurement: 'hPa'
+
+  - platform: template
+    name: "Dach SchlaZi Taupunkt"
+    lambda: return (243.5*(log(id(humidity).state/100)+((17.67*id(temp).state)/
+     (243.5+id(temp).state)))/(17.67-log(id(humidity).state/100)-
+     ((17.67*id(temp).state)/(243.5+id(temp).state))));
+    update_interval: 60s
+    unit_of_measurement: '°C'
+    
+binary_sensor:
+- platform: status
+  name: "Dach SchlaZi Temp Status"
+
+- platform: status
+  name: "wifi Status"
+  id: wifi_status
+    
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: ESP IP Address
+    ssid:
+      name: ESP Connected SSID
+    bssid:
+      name: ESP Connected BSSID
+    mac_address:
+      name: ESP Mac Wifi Address
+
+# bme680_sec      
+  - platform: bme680_bsec
+    iaq_accuracy:
+      name: "Dach SchlaZi BME680 IAQ Accuracy"
+      
+      
+  - platform: template
+    name: Dach SchlaZi Uptime
+    lambda: |-
+      int seconds = (id(uptime_sec).state);
+      int days = seconds / (24 * 3600);
+      seconds = seconds % (24 * 3600); 
+      int hours = seconds / 3600;
+      seconds = seconds % 3600;
+      int minutes = seconds /  60;
+      seconds = seconds % 60;
+      return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+    icon: mdi:clock-start
+    update_interval: 65s
+  
+  - platform: template
+    name: "Dach SchlaZi Luftqualität"
+    id: iaq_txt
+    icon: "mdi:air-filter"
+    lambda: |-
+   
+      ESP_LOGD("main", "Aktueller Wert %d", id(iaq_range));
+      
+      if ((id(iaq_range).state <= 50.0 )) {
+        return {"sehr gut"};
+      }
+      else if ((id(iaq_range).state > 50.00)  && (id(iaq_range).state <= 100.0)) {
+        return {"gut"};
+      }
+      else if ((id(iaq_range).state > 100.0) && (id(iaq_range).state <= 150.0)) {
+        return {"Leicht verschmutz"};
+      }
+      else if ((id(iaq_range).state > 150.0) && (id(iaq_range).state <= 200.0)) {
+        return {"mäßig verschmutz"};
+      }
+      else if ((id(iaq_range).state > 200.0) && (id(iaq_range).state <= 250.0)) {
+        return {"stark verschmutzt"};
+      }
+      else if ((id(iaq_range).state > 250.0) && (id(iaq_range).state <= 350.0)) {
+        return {"extrem verschmutz"};
+      }
+      else if ((id(iaq_range).state > 350.00)) {
+        return {"gefährlich verschmutzt"};
+      }
+      return {};
+    update_interval: 30s
+        
+
+ 
+
+switch:
+  - platform: gpio
+    pin: GPIO4
+    name: "livingroom-air-quality Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO19
+
+display:
+  - platform: st7789v
+    model: TTGO TDisplay 135x240  # added bit
+    backlight_pin: GPIO4
+    cs_pin: GPIO5
+    dc_pin: GPIO16
+    reset_pin: GPIO23
+    update_interval: 1s
+    rotation: 270
+    lambda: |-
+      it.rectangle(0,  0, it.get_width(), it.get_height(), id(my_blue));
+      it.rectangle(0, 19, it.get_width(), it.get_height(), id(my_blue));   // header bar
+
+      it.strftime(4,  3, id(sz_13), id(my_yellow), TextAlign::TOP_LEFT, "%Y-%m-%d %H:%M:%S", id(homeassistant_time).now());
+
+      if (id(wifi_status).state) {
+        it.print(236, 3, id(sz_13), id(my_green), TextAlign::TOP_RIGHT, "Online");
+      } else {
+        it.print(236, 3, id(sz_13), id(my_red), TextAlign::TOP_RIGHT, "Offline");
+      }
+
+      it.printf(120,   75, id(sz_20), id(my_yellow), TextAlign::TOP_CENTER, "%f PPM", id(iaq_ppm).state);
+     
+      it.print(120,    45, id(sz_24), id(my_gray),   TextAlign::TOP_CENTER,  "Environment");
+
+      
+      it.printf(4,   25, id(sz_20), id(my_yellow), TextAlign::TOP_LEFT, "%0.1f°C", id(temp).state);
+      it.printf(236, 25, id(sz_20), id(my_yellow), TextAlign::TOP_RIGHT,  "%0.1f%%", id(humidity).state);
+
+
+      it.printf(4,   107, id(sz_20), id(my_yellow), TextAlign::TOP_LEFT,  "%0.1f hPa", id(pressure).state);
+      it.printf(236, 107, id(sz_20), id(my_yellow), TextAlign::TOP_RIGHT, "%0.1f kΩ",  id(gas_r).state/1000.0);
